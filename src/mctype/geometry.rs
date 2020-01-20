@@ -1,22 +1,21 @@
-impl isBlock {
-    fn is_block(&self,name: &str) -> bool {
+impl Block {
+    fn is_block(&self, name: &str) -> bool {
         if self.name == name {
             true
-        }else{
+        } else {
             false
         }
     }
 }
 
-pub struct block {
-    pub position:position,
-    pub name: str,
-    pub data: u8
+pub struct Block {
+    pub position: Position,
+    pub name: String,
+    pub data: u8,
 }
 
-pub struct position {
-    x:i32,
-    y:i32,
-    z:i32
+pub struct Position {
+    x: i32,
+    y: i32,
+    z: i32,
 }
-

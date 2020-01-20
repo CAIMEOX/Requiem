@@ -10,3 +10,5 @@ edition = "2018"
 ws = "*"
 env_logger = "*"
 serde_json = "1.0"
+serde = "*"
+uuid = { version = "0.8", features = ["serde", "v4"] }

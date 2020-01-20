@@ -1,4 +1,3 @@
-pub struct options {
+pub struct Options {
     radius: u32,
-
 }

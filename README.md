@@ -12,6 +12,13 @@ It's easy to compile RustBuilder:
 ```shell script
 cargo build --release
 ```
+# Documentation
+# Installing
+## Linux
+## MacBook
+## Windows
+# Discussion
+
 # Contributing
 We happily accept contributions,through pull requests on GitHub.
 # Author
