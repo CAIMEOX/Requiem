@@ -1,20 +1,27 @@
 use std::collections::HashMap;
-
-struct PlayerMessage {
-    message: String,
-    sender: String,
-    messageType: String,
-    receiver: String,
+use serde_json::Value;
+use super::server::Server;
+use ws::Sender;
+pub struct PlayerMessage {
+    pub message: String,
+    pub sender: String,
+    pub messageType: String,
+    pub receiver: String,
 }
-
+pub type Callback = fn(&ws::Sender, &mut Session,&Value);
 pub struct Session {
     pub name: String,
     pub connected: bool,
-    pub handlers: HashMap<String, fn(Event)>,
-    pub commandCallbacks: HashMap<String, fn(String)>,
+    pub handlers: HashMap<String, Callback>,
+    pub commandCallbacks: HashMap<String, Callback>,
     pub commandMap: HashMap<String, String>,
 }
 
+impl Session {
+    pub fn setName(&mut self, name: String) {
+        self.name = name;
+    }
+}
 pub enum Event {
     PlayerMessage(PlayerMessage),
 }
