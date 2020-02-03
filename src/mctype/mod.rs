@@ -1,2 +1,2 @@
-mod config;
-mod geometry;
+pub mod config;
+pub mod geometry;
