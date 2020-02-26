@@ -2,19 +2,27 @@ extern crate serde;
 extern crate serde_json;
 extern crate ws;
 use self::ws::CloseCode;
-use super::mctype::config::{Config, Options};
-use super::user_session::{Callback, Session};
-use crate::mctype::geometry::{Position, Block};
 use super::builder::generate;
-use super::parse::parse;
 use super::commander;
+use super::mctype::config::{Config, Options};
+use super::parse::parse;
+use super::user_session::{Callback, Session};
+use super::utils::add_pos;
+use crate::commander::{set_blocks, tell_raw};
+use crate::mctype::geometry::{Block, Position};
 use serde::Serialize;
 use serde_json::{Error, Value};
 use std::collections::HashMap;
 use std::thread;
 use uuid::Uuid;
-use super::utils::add_pos;
-use crate::commander::{tell_raw,set_blocks};
+
+fn build_header(purpose: String) -> Header {
+    Header {
+        messagePurpose: purpose,
+        requestId: Uuid::new_v4().to_simple().to_string(),
+        version: 1,
+    }
+}
 
 pub struct Server<'a> {
     pub sender: ws::Sender,
@@ -91,18 +99,21 @@ impl SendCommand for ws::Sender {
 }
 impl Server<'_> {
     fn on_chat_meesage(&mut self, message: &str) {
-        println!("{}",tell_raw("@s",message));
-        println!("{}",tell_raw("@s","a\nb"));
         let args = parse(message);
         if let Ok(a) = args.1 {
             let mut blocks = generate(args.0, a, &self.session.config, &self.sender);
-            add_pos(&mut blocks, self.session.config.position.clone());
-            let cmds = set_blocks(blocks);
-//            self.send_command()
-        }else if let Err(e) = args.1{
+            match blocks {
+                Ok(mut b) => {
+                    add_pos(&mut b, self.session.config.position.clone());
+                    let cmds = set_blocks(b);
+                }
+                Err(e) => {
+                    self.send_command_only(tell_raw("@w",&e.to_string()));
+                },
+            }
+        } else if let Err(e) = args.1 {
             println!("Cannot parse cfg: {}", e);
         }
-
     }
 
     fn send_command_queue(&mut self, cmds: Vec<String>) {
@@ -110,6 +121,7 @@ impl Server<'_> {
             self.send_command_only(c);
         }
     }
+
     fn send_command(&mut self, cmd: String, callback: Callback) -> Result<(), Error> {
         let request = Request {
             header: build_header("commandRequest".to_string()),
@@ -173,40 +185,13 @@ impl Server<'_> {
 
 impl ws::Handler for Server<'_> {
     fn on_open(&mut self, shake: ws::Handshake) -> ws::Result<()> {
-        self.session = Session {
-            name: "".to_string(),
-            config: Config {
-                position: Position { x: 1, y: 0, z: 1 },
-                block: Block {
-                    position: Position {
-                        x:0, y:0, z:0
-                    },
-                    name: "iron_block",
-                    data: 0
-                }
-            },
-            options: Options { radius: 5 },
-            connected: true,
-            handlers: HashMap::new(),
-            command_callbacks: HashMap::new(),
-            command_map: Default::default(),
-        };
-        self.send_command_only(tell_raw("@a","RustBuilder connected!!"));
-        fn recv_pm(sender: &ws::Sender, session: &mut Session, response: &Value) {
-            match &response["body"]["properties"]["message"] {
-                Value::String(s) if s == "whoami" => {
-                    println!("WHOAMI");
-
-                }
-                _ => println!("WTF: {}", response["body"]["properties"]["message"]),
-            }
-        }
-        self.subscribe("PlayerMessage".to_string(), recv_pm);
-        fn recv_testfor(sender: &ws::Sender, session: &mut Session, v: &Value) {
+        self.send_command_only(tell_raw("@s", "RustBuilder connected!!"));
+        //Subscrible PlayerMessage
+        self.subscribe("PlayerMessage".to_string(), |_, _, _|{});
+        fn recv_testfor(_sender: &ws::Sender, session: &mut Session, v: &Value) {
             println!("Testfor: {}", v);
             session.name = v["body"]["properties"]["sender"].to_string();
         }
-
         self.send_command("testfor @s".to_string(), recv_testfor);
         fn set_position(sender: &ws::Sender, session: &mut Session, v: &Value) {
             let pos = &v["body"]["details"]["position"].as_object();
@@ -223,7 +208,6 @@ impl ws::Handler for Server<'_> {
                 println!("SetPosition Error: {:?}", &v["body"]["details"])
             }
             //            if let (&Value::Number(x),&Value::Number(y),&Value::Number(z)) = (&pos["x"], &pos["y"], &pos["z"]) {
-
         }
         self.send_command("querytarget @s".to_string(), set_position);
         if let Some(ip_addr) = shake.remote_addr()? {
@@ -253,20 +237,14 @@ impl ws::Handler for Server<'_> {
                     f(&self.sender, &mut self.session, &r);
                 }
                 "event" => {
-//                    let f = self
-//                        .session
-//                        .handlers
-//                        .get(r["body"]["eventName"].as_str().unwrap())
-//                        .unwrap();
-                    if r["body"]["eventName"].as_str().unwrap() == "PlayerMessage"{
+                    if r["body"]["eventName"].as_str().unwrap() == "PlayerMessage" {
                         if let Some(msg) = r["body"]["properties"]["message"].as_str() {
                             self.on_chat_meesage(msg)
                         }
                     }
-
-//                    f(&self.sender, &mut self.session, &r);
                 }
                 "error" => {
+                    //Resend
                     let cmd = self
                         .session
                         .command_map
@@ -278,7 +256,7 @@ impl ws::Handler for Server<'_> {
             },
             _ => panic!("Undefined behavior!"),
         }
-        println!("REC MSG: {} ; {}", r["header"], r["body"]);
+        println!("onMessage: {} ; {}", r["header"], r["body"]);
         Ok(())
     }
 
@@ -297,12 +275,4 @@ struct Header {
     messagePurpose: String,
     requestId: String,
     version: u8,
-}
-
-fn build_header(purpose: String) -> Header {
-    Header {
-        messagePurpose: purpose,
-        requestId: Uuid::new_v4().to_simple().to_string(),
-        version: 1,
-    }
 }

@@ -1,33 +1,26 @@
 extern crate meorslib;
 extern crate ws;
-use colored::*;
 use meorslib::mctype::config::{Config, Options};
-use meorslib::mctype::geometry::{Position, Block};
+use meorslib::mctype::geometry::{Block, Position};
 use meorslib::server;
 use meorslib::user_session::Session;
 use meorslib::utils::now;
 
 fn main() {
-    println!(
-        "{}",
-        now("Server is running at localhost:8081".yellow().bold())
-    );
+    let addr = "0.0.0.0:32768";
+    println!("Server is running at {}", addr);
 
-    ws::listen("localhost:8081", |out| server::Server {
+    ws::listen(addr, |out| server::Server {
         sender: out,
         session: Session {
             name: "".to_string(),
             config: Config {
                 position: Position { x: 0, y: 0, z: 0 },
                 block: Block {
-                    position: Position {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
+                    position: Position { x: 0, y: 0, z: 0 },
                     name: "iron_block",
-                    data: 0
-                }
+                    data: 0,
+                },
             },
             options: Options { radius: 0 },
             connected: false,
@@ -40,5 +33,5 @@ fn main() {
 }
 
 fn handle_err(e: ws::Error) {
-    println!("{}", now(format!("Error: {}", e).red().bold()));
+    println!("{}", e);
 }

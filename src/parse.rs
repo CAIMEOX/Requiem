@@ -1,6 +1,5 @@
 extern crate clap;
-use clap::{App, Arg, ArgMatches,Error};
-
+use clap::{App, Arg, ArgMatches, Error};
 
 pub fn parse(cmd: &str) -> (String, Result<ArgMatches, Error>) {
     let RULES: App = App::new("meorslib").args(&vec![
@@ -24,7 +23,11 @@ pub fn parse(cmd: &str) -> (String, Result<ArgMatches, Error>) {
         Arg::with_name("facing")
             .short("f")
             .takes_value(true)
-            .help("Facing of structure.(x, y or z)")
+            .help("Facing of structure.(x, y or z)"),
+        Arg::with_name("path")
+            .short("p")
+            .takes_value(true)
+            .help("The path of the file."),
     ]);
     let spl_cmd = cmd.split_whitespace();
     let vec_cmd = spl_cmd.collect::<Vec<&str>>();

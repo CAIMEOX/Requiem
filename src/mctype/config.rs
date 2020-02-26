@@ -1,4 +1,4 @@
-use super::geometry::{Position,Block};
+use super::geometry::{Block, Position};
 //Building Config
 pub struct Options {
     pub radius: u32,
@@ -7,5 +7,5 @@ pub struct Options {
 //User's profile
 pub struct Config<'a> {
     pub position: Position,
-    pub block: Block<'a>
+    pub block: Block<'a>,
 }
